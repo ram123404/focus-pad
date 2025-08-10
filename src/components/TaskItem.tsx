@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit, Trash2, Check, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Trash2, Check, X, Archive, ArchiveRestore } from "lucide-react";
 import { Task } from "@/types/note";
 
 interface TaskItemProps {
@@ -10,9 +11,10 @@ interface TaskItemProps {
   onToggle: (id: string) => void;
   onEdit: (id: string, text: string) => void;
   onDelete: (id: string) => void;
+  onArchive: (id: string) => void;
 }
 
-export function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemProps) {
+export function TaskItem({ task, onToggle, onEdit, onDelete, onArchive }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
 
@@ -37,7 +39,9 @@ export function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemProps) {
   };
 
   return (
-    <div className="group flex items-center gap-3 p-4 rounded-lg bg-card shadow-soft hover:shadow-card transition-all duration-200">
+    <div className={`group flex items-center gap-3 p-4 rounded-lg bg-card shadow-soft hover:shadow-card transition-all duration-200 ${
+      task.isArchived ? 'opacity-75' : ''
+    }`}>
       <Checkbox
         checked={task.completed}
         onCheckedChange={() => onToggle(task.id)}
@@ -72,15 +76,27 @@ export function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemProps) {
         </div>
       ) : (
         <>
-          <span
-            className={`flex-1 ${
-              task.completed
-                ? "line-through text-muted-foreground"
-                : "text-foreground"
-            }`}
-          >
-            {task.text}
-          </span>
+          <div className="flex-1">
+            <span
+              className={`block ${
+                task.completed
+                  ? "line-through text-muted-foreground"
+                  : "text-foreground"
+              }`}
+            >
+              {task.text}
+            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary" className="text-xs">
+                {task.category}
+              </Badge>
+              {task.isArchived && (
+                <Badge variant="outline" className="text-xs text-muted-foreground">
+                  Archived
+                </Badge>
+              )}
+            </div>
+          </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button
               variant="ghost"
@@ -89,6 +105,14 @@ export function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemProps) {
               className="hover:bg-accent/50"
             >
               <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onArchive(task.id)}
+              className="hover:bg-accent/50"
+            >
+              {task.isArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
             </Button>
             <Button
               variant="ghost"

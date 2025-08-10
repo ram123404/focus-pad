@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, StickyNote, CheckSquare } from "lucide-react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -8,15 +9,26 @@ import { NoteCard } from "./NoteCard";
 import { TaskItem } from "./TaskItem";
 import { NoteEditor } from "./NoteEditor";
 import { DeleteConfirmation } from "./DeleteConfirmation";
-import { Note, Task } from "@/types/note";
+import { SearchAndFilter } from "./SearchAndFilter";
+import { ThemeToggle } from "./ThemeToggle";
+import { Note, Task, AppSettings } from "@/types/note";
 import { useToast } from "@/hooks/use-toast";
 
 export function NotesApp() {
   const [notes, setNotes] = useLocalStorage<Note[]>("notes", []);
   const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
+  const [settings, setSettings] = useLocalStorage<AppSettings>("app-settings", {
+    theme: 'light',
+    categories: ['Personal', 'Work', 'Ideas']
+  });
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
+  const [newTaskCategory, setNewTaskCategory] = useState("Personal");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [showArchived, setShowArchived] = useState(false);
+  const [showPinnedOnly, setShowPinnedOnly] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     isOpen: boolean;
     type: 'note' | 'task';
@@ -29,6 +41,38 @@ export function NotesApp() {
     title: ''
   });
   const { toast } = useToast();
+
+  // Filter and search logic
+  const filteredNotes = useMemo(() => {
+    return notes.filter(note => {
+      const matchesSearch = !searchQuery || 
+        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.content.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = selectedCategory === "all" || note.category === selectedCategory;
+      const matchesArchived = showArchived || !note.isArchived;
+      const matchesPinned = !showPinnedOnly || note.isPinned;
+
+      return matchesSearch && matchesCategory && matchesArchived && matchesPinned;
+    }).sort((a, b) => {
+      // Sort: pinned first, then by updated date
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [notes, searchQuery, selectedCategory, showArchived, showPinnedOnly]);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => {
+      const matchesSearch = !searchQuery || 
+        task.text.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = selectedCategory === "all" || task.category === selectedCategory;
+      const matchesArchived = showArchived || !task.isArchived;
+
+      return matchesSearch && matchesCategory && matchesArchived;
+    });
+  }, [tasks, searchQuery, selectedCategory, showArchived]);
 
   // Note functions
   const createNote = () => {
@@ -81,6 +125,22 @@ export function NotesApp() {
     setDeleteConfirm({ isOpen: false, type: 'note', id: '', title: '' });
   };
 
+  const pinNote = (id: string) => {
+    setNotes(prev => prev.map(note =>
+      note.id === id ? { ...note, isPinned: !note.isPinned } : note
+    ));
+    const note = notes.find(n => n.id === id);
+    toast({ title: note?.isPinned ? "Note unpinned" : "Note pinned" });
+  };
+
+  const archiveNote = (id: string) => {
+    setNotes(prev => prev.map(note =>
+      note.id === id ? { ...note, isArchived: !note.isArchived } : note
+    ));
+    const note = notes.find(n => n.id === id);
+    toast({ title: note?.isArchived ? "Note restored" : "Note archived" });
+  };
+
   // Task functions
   const addTask = () => {
     if (newTaskText.trim()) {
@@ -88,6 +148,8 @@ export function NotesApp() {
         id: crypto.randomUUID(),
         text: newTaskText.trim(),
         completed: false,
+        category: newTaskCategory,
+        isArchived: false,
         createdAt: new Date().toISOString(),
       };
       setTasks(prev => [...prev, newTask]);
@@ -125,6 +187,15 @@ export function NotesApp() {
     setDeleteConfirm({ isOpen: false, type: 'task', id: '', title: '' });
   };
 
+  const archiveTask = (id: string) => {
+    setTasks(prev => prev.map(task =>
+      task.id === id ? { ...task, isArchived: !task.isArchived } : task
+    ));
+    const task = tasks.find(t => t.id === id);
+    toast({ title: task?.isArchived ? "Task restored" : "Task archived" });
+  };
+
+  // Utility functions
   const handleTaskKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       addTask();
@@ -139,18 +210,80 @@ export function NotesApp() {
     }
   };
 
+  // Export/Import functions
+  const exportData = () => {
+    const data = {
+      notes,
+      tasks,
+      settings,
+      exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `focus-pad-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({ title: "Data exported successfully" });
+  };
+
+  const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        
+        if (data.notes) setNotes(data.notes);
+        if (data.tasks) setTasks(data.tasks);
+        if (data.settings) setSettings(data.settings);
+        
+        toast({ title: "Data imported successfully" });
+      } catch (error) {
+        toast({ title: "Failed to import data", variant: "destructive" });
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
-            Focus Pad
-          </h1>
-          <p className="text-muted-foreground">
-            Organize your thoughts and tasks in one beautiful place
-          </p>
+        <div className="flex justify-between items-center mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
+              Focus Pad
+            </h1>
+            <p className="text-muted-foreground">
+              Organize your thoughts and tasks in one beautiful place
+            </p>
+          </div>
+          <ThemeToggle />
         </div>
+
+        {/* Search and Filter */}
+        <SearchAndFilter
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          categories={settings.categories}
+          showArchived={showArchived}
+          onToggleArchived={() => setShowArchived(!showArchived)}
+          showPinnedOnly={showPinnedOnly}
+          onTogglePinnedOnly={() => setShowPinnedOnly(!showPinnedOnly)}
+          onExport={exportData}
+          onImport={importData}
+        />
 
         {/* Main Content */}
         <Tabs defaultValue="notes" className="w-full">
@@ -160,14 +293,14 @@ export function NotesApp() {
               className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <StickyNote className="h-4 w-4" />
-              Notes ({notes.length})
+              Notes ({filteredNotes.length}/{notes.length})
             </TabsTrigger>
             <TabsTrigger 
               value="tasks"
               className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <CheckSquare className="h-4 w-4" />
-              Tasks ({tasks.filter(t => !t.completed).length})
+              Tasks ({filteredTasks.filter(t => !t.completed).length}/{tasks.length})
             </TabsTrigger>
           </TabsList>
 
@@ -184,12 +317,17 @@ export function NotesApp() {
               </Button>
             </div>
 
-            {notes.length === 0 ? (
+            {filteredNotes.length === 0 ? (
               <div className="text-center py-12">
                 <StickyNote className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-medium mb-2">No notes yet</h3>
+                <h3 className="text-xl font-medium mb-2">
+                  {notes.length === 0 ? "No notes yet" : "No notes match your filters"}
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  Create your first note to get started
+                  {notes.length === 0 
+                    ? "Create your first note to get started"
+                    : "Try adjusting your search or filters"
+                  }
                 </p>
                 <Button 
                   onClick={createNote}
@@ -202,12 +340,14 @@ export function NotesApp() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {notes.map((note) => (
+                {filteredNotes.map((note) => (
                   <div key={note.id} className="group">
                     <NoteCard
                       note={note}
                       onEdit={editNote}
                       onDelete={deleteNote}
+                      onPin={pinNote}
+                      onArchive={archiveNote}
                     />
                   </div>
                 ))}
@@ -230,6 +370,18 @@ export function NotesApp() {
                 onKeyDown={handleTaskKeyPress}
                 className="flex-1 bg-background/50"
               />
+              <Select value={newTaskCategory} onValueChange={setNewTaskCategory}>
+                <SelectTrigger className="w-32 bg-background/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {settings.categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button 
                 onClick={addTask}
                 disabled={!newTaskText.trim()}
@@ -240,42 +392,49 @@ export function NotesApp() {
               </Button>
             </div>
 
-            {tasks.length === 0 ? (
+            {filteredTasks.length === 0 ? (
               <div className="text-center py-12">
                 <CheckSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-xl font-medium mb-2">No tasks yet</h3>
+                <h3 className="text-xl font-medium mb-2">
+                  {tasks.length === 0 ? "No tasks yet" : "No tasks match your filters"}
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  Add your first task to get organized
+                  {tasks.length === 0 
+                    ? "Add your first task to get organized"
+                    : "Try adjusting your search or filters"
+                  }
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {/* Active Tasks */}
-                {tasks.filter(task => !task.completed).map((task) => (
+                {filteredTasks.filter(task => !task.completed).map((task) => (
                   <TaskItem
                     key={task.id}
                     task={task}
                     onToggle={toggleTask}
                     onEdit={editTask}
                     onDelete={deleteTask}
+                    onArchive={archiveTask}
                   />
                 ))}
                 
                 {/* Completed Tasks */}
-                {tasks.filter(task => task.completed).length > 0 && (
+                {filteredTasks.filter(task => task.completed).length > 0 && (
                   <>
                     <div className="mt-8 mb-4">
                       <h3 className="text-lg font-medium text-muted-foreground">
-                        Completed ({tasks.filter(task => task.completed).length})
+                        Completed ({filteredTasks.filter(task => task.completed).length})
                       </h3>
                     </div>
-                    {tasks.filter(task => task.completed).map((task) => (
+                    {filteredTasks.filter(task => task.completed).map((task) => (
                       <TaskItem
                         key={task.id}
                         task={task}
                         onToggle={toggleTask}
                         onEdit={editTask}
                         onDelete={deleteTask}
+                        onArchive={archiveTask}
                       />
                     ))}
                   </>
@@ -292,6 +451,7 @@ export function NotesApp() {
         isOpen={isNoteEditorOpen}
         onClose={() => setIsNoteEditorOpen(false)}
         onSave={saveNote}
+        categories={settings.categories}
       />
 
       {/* Delete Confirmation Dialog */}

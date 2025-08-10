@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Save, X } from "lucide-react";
 import { Note } from "@/types/note";
@@ -11,19 +12,23 @@ interface NoteEditorProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => void;
+  categories: string[];
 }
 
-export function NoteEditor({ note, isOpen, onClose, onSave }: NoteEditorProps) {
+export function NoteEditor({ note, isOpen, onClose, onSave, categories }: NoteEditorProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [category, setCategory] = useState("Personal");
 
   useEffect(() => {
     if (note) {
       setTitle(note.title);
       setContent(note.content);
+      setCategory(note.category);
     } else {
       setTitle("");
       setContent("");
+      setCategory("Personal");
     }
   }, [note]);
 
@@ -32,6 +37,9 @@ export function NoteEditor({ note, isOpen, onClose, onSave }: NoteEditorProps) {
       onSave({
         title: title.trim(),
         content: content.trim(),
+        category,
+        isPinned: note?.isPinned || false,
+        isArchived: note?.isArchived || false,
       });
       onClose();
     }
@@ -65,9 +73,22 @@ export function NoteEditor({ note, isOpen, onClose, onSave }: NoteEditorProps) {
             className="text-lg font-medium bg-background/50"
             autoFocus
           />
+
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="bg-background/50">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           
           <Textarea
-            placeholder="Start writing your note..."
+            placeholder="Start writing your note... You can use **markdown** formatting!"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="min-h-[300px] resize-none bg-background/50"
