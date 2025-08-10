@@ -40,7 +40,7 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
         {new Date(note.updatedAt).toLocaleDateString()}
       </div>
       
-      <div className="text-foreground/80 line-clamp-4 whitespace-pre-wrap">
+      <div className="text-foreground/80 max-h-32 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
         {note.content || "No content"}
       </div>
     </Card>
