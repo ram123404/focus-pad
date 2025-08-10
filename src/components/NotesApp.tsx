@@ -7,6 +7,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { NoteCard } from "./NoteCard";
 import { TaskItem } from "./TaskItem";
 import { NoteEditor } from "./NoteEditor";
+import { DeleteConfirmation } from "./DeleteConfirmation";
 import { Note, Task } from "@/types/note";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,6 +17,17 @@ export function NotesApp() {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
   const [newTaskText, setNewTaskText] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    type: 'note' | 'task';
+    id: string;
+    title: string;
+  }>({
+    isOpen: false,
+    type: 'note',
+    id: '',
+    title: ''
+  });
   const { toast } = useToast();
 
   // Note functions
@@ -54,8 +66,19 @@ export function NotesApp() {
   };
 
   const deleteNote = (id: string) => {
-    setNotes(prev => prev.filter(note => note.id !== id));
+    const note = notes.find(n => n.id === id);
+    setDeleteConfirm({
+      isOpen: true,
+      type: 'note',
+      id,
+      title: note?.title || 'Untitled Note'
+    });
+  };
+
+  const confirmDeleteNote = () => {
+    setNotes(prev => prev.filter(note => note.id !== deleteConfirm.id));
     toast({ title: "Note deleted", variant: "destructive" });
+    setDeleteConfirm({ isOpen: false, type: 'note', id: '', title: '' });
   };
 
   // Task functions
@@ -87,13 +110,32 @@ export function NotesApp() {
   };
 
   const deleteTask = (id: string) => {
-    setTasks(prev => prev.filter(task => task.id !== id));
+    const task = tasks.find(t => t.id === id);
+    setDeleteConfirm({
+      isOpen: true,
+      type: 'task',
+      id,
+      title: task?.text || 'Untitled Task'
+    });
+  };
+
+  const confirmDeleteTask = () => {
+    setTasks(prev => prev.filter(task => task.id !== deleteConfirm.id));
     toast({ title: "Task deleted", variant: "destructive" });
+    setDeleteConfirm({ isOpen: false, type: 'task', id: '', title: '' });
   };
 
   const handleTaskKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       addTask();
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirm.type === 'note') {
+      confirmDeleteNote();
+    } else {
+      confirmDeleteTask();
     }
   };
 
@@ -250,6 +292,15 @@ export function NotesApp() {
         isOpen={isNoteEditorOpen}
         onClose={() => setIsNoteEditorOpen(false)}
         onSave={saveNote}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmation
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, type: 'note', id: '', title: '' })}
+        onConfirm={handleDeleteConfirm}
+        title={`Delete ${deleteConfirm.type === 'note' ? 'Note' : 'Task'}?`}
+        description={`Are you sure you want to delete "${deleteConfirm.title}"? This action cannot be undone.`}
       />
     </div>
   );
