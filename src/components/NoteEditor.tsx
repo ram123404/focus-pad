@@ -56,26 +56,26 @@ export function NoteEditor({ note, isOpen, onClose, onSave, categories }: NoteEd
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="max-w-2xl max-h-[80vh] bg-gradient-subtle border-0 shadow-card"
+        className="max-w-2xl max-h-[80vh] bg-gradient-subtle border-0 shadow-card flex flex-col"
         onKeyDown={handleKeyDown}
       >
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl font-semibold">
             {note ? "Edit Note" : "Create New Note"}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4 flex-1">
+        <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
           <Input
             placeholder="Note title..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="text-lg font-medium bg-background/50"
+            className="text-lg font-medium bg-background/50 flex-shrink-0"
             autoFocus
           />
 
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="bg-background/50">
+            <SelectTrigger className="bg-background/50 flex-shrink-0">
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
@@ -91,11 +91,11 @@ export function NoteEditor({ note, isOpen, onClose, onSave, categories }: NoteEd
             placeholder="Start writing your note... You can use **markdown** formatting!"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="min-h-[300px] resize-none bg-background/50"
+            className="flex-1 resize-none bg-background/50 min-h-0"
           />
         </div>
         
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex justify-end gap-3 pt-4 flex-shrink-0 border-t border-border/50">
           <Button
             variant="ghost"
             onClick={onClose}
