@@ -1,17 +1,20 @@
+import { useState, useEffect } from 'react';
 import { 
   Settings, 
   Moon, 
   Sun, 
   Monitor,
-  Type,
   Download,
   Upload,
-  Trash2
+  Trash2,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -21,9 +24,47 @@ import {
 } from "@/components/ui/select";
 import { Slider } from '@/components/ui/slider';
 import { toast } from '@/hooks/use-toast';
+import { 
+  getNotificationSettings, 
+  saveNotificationSettings,
+  useNotifications 
+} from '@/hooks/useNotifications';
 
 export function SettingsPage() {
   const { settings, updateSettings, notes, tasks, tags } = useApp();
+  
+  // Notification settings
+  const [notificationSettings, setNotificationSettings] = useState(getNotificationSettings);
+  const { requestPermission, isSupported, permission } = useNotifications(tasks, notificationSettings);
+
+  // Update notification settings
+  const handleNotificationToggle = async (enabled: boolean) => {
+    if (enabled) {
+      const granted = await requestPermission();
+      if (!granted) {
+        toast({ 
+          title: 'Notifications blocked', 
+          description: 'Please enable notifications in your browser settings',
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+    
+    const newSettings = { ...notificationSettings, enabled };
+    setNotificationSettings(newSettings);
+    saveNotificationSettings(newSettings);
+    toast({ 
+      title: enabled ? 'Notifications enabled' : 'Notifications disabled',
+      description: enabled ? 'You will receive reminders for upcoming tasks' : undefined
+    });
+  };
+
+  const handleReminderTimeChange = (minutes: number) => {
+    const newSettings = { ...notificationSettings, reminderMinutes: minutes };
+    setNotificationSettings(newSettings);
+    saveNotificationSettings(newSettings);
+  };
 
   const handleExport = () => {
     const data = { notes, tasks, tags, settings, exportedAt: new Date().toISOString() };
@@ -45,7 +86,6 @@ export function SettingsPage() {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        // Would need to implement import logic in AppContext
         toast({ title: 'Import feature coming soon', description: 'Data structure validated successfully' });
       } catch {
         toast({ title: 'Invalid file', description: 'Could not parse the backup file', variant: 'destructive' });
@@ -61,6 +101,21 @@ export function SettingsPage() {
     }
   };
 
+  const sendTestNotification = () => {
+    if (Notification.permission === 'granted') {
+      new Notification('🔔 Test Notification', {
+        body: 'Notifications are working correctly!',
+        icon: '/favicon.ico',
+      });
+    } else {
+      toast({ 
+        title: 'Permission required', 
+        description: 'Enable notifications first',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen p-6 lg:p-8 max-w-2xl mx-auto">
       {/* Header */}
@@ -72,6 +127,66 @@ export function SettingsPage() {
       </header>
 
       <div className="space-y-6">
+        {/* Notifications */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notifications
+            </CardTitle>
+            <CardDescription>Get reminded about upcoming tasks</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!isSupported ? (
+              <p className="text-sm text-muted-foreground">
+                Your browser doesn't support notifications.
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable Reminders</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {permission === 'denied' 
+                        ? 'Notifications are blocked in browser settings' 
+                        : 'Receive browser notifications for task due dates'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={notificationSettings.enabled}
+                    onCheckedChange={handleNotificationToggle}
+                    disabled={permission === 'denied'}
+                  />
+                </div>
+
+                {notificationSettings.enabled && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>
+                        Remind me: {notificationSettings.reminderMinutes} minutes before
+                      </Label>
+                      <Slider
+                        value={[notificationSettings.reminderMinutes]}
+                        onValueChange={([value]) => handleReminderTimeChange(value)}
+                        min={5}
+                        max={60}
+                        step={5}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        You'll be notified this many minutes before a task is due
+                      </p>
+                    </div>
+
+                    <Button variant="outline" size="sm" onClick={sendTestNotification}>
+                      Send Test Notification
+                    </Button>
+                  </>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Appearance */}
         <Card>
           <CardHeader>
