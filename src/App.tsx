@@ -14,6 +14,7 @@ import { ArchivePage } from "./pages/ArchivePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
