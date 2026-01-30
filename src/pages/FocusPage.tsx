@@ -11,12 +11,14 @@ export function FocusPage() {
   const { settings, todaysTasks, priorityTasks, toggleTask } = useApp();
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState<'work' | 'break'>('work');
-  const [timeLeft, setTimeLeft] = useState(settings.pomodoroWorkMinutes * 60);
+  const [timeLeft, setTimeLeft] = useState((settings?.pomodoro_work_minutes ?? 25) * 60);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const resetTimer = useCallback((newMode: 'work' | 'break' = 'work') => {
     setMode(newMode);
-    setTimeLeft(newMode === 'work' ? settings.pomodoroWorkMinutes * 60 : settings.pomodoroBreakMinutes * 60);
+    const workMins = settings?.pomodoro_work_minutes ?? 25;
+    const breakMins = settings?.pomodoro_break_minutes ?? 5;
+    setTimeLeft(newMode === 'work' ? workMins * 60 : breakMins * 60);
     setIsRunning(false);
   }, [settings]);
 
@@ -48,9 +50,11 @@ export function FocusPage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const workMins = settings?.pomodoro_work_minutes ?? 25;
+  const breakMins = settings?.pomodoro_break_minutes ?? 5;
   const progress = mode === 'work' 
-    ? ((settings.pomodoroWorkMinutes * 60 - timeLeft) / (settings.pomodoroWorkMinutes * 60)) * 100
-    : ((settings.pomodoroBreakMinutes * 60 - timeLeft) / (settings.pomodoroBreakMinutes * 60)) * 100;
+    ? ((workMins * 60 - timeLeft) / (workMins * 60)) * 100
+    : ((breakMins * 60 - timeLeft) / (breakMins * 60)) * 100;
 
   const tasksToShow = priorityTasks.length > 0 ? priorityTasks : todaysTasks.slice(0, 3);
 

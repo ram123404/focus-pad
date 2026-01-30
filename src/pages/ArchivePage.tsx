@@ -13,26 +13,26 @@ export function ArchivePage() {
   const { archivedNotes, archivedTasks, updateNote, updateTask, deleteNote, deleteTask } = useApp();
   const [activeTab, setActiveTab] = useState('notes');
 
-  const handleRestoreNote = (id: string) => {
-    updateNote(id, { isArchived: false });
+  const handleRestoreNote = async (id: string) => {
+    await updateNote(id, { is_archived: false });
     toast({ title: 'Note restored' });
   };
 
-  const handleDeleteNote = (id: string) => {
+  const handleDeleteNote = async (id: string) => {
     if (confirm('Delete this note permanently?')) {
-      deleteNote(id);
+      await deleteNote(id);
       toast({ title: 'Note deleted permanently' });
     }
   };
 
-  const handleRestoreTask = (id: string) => {
-    updateTask(id, { isArchived: false });
+  const handleRestoreTask = async (id: string) => {
+    await updateTask(id, { is_archived: false });
     toast({ title: 'Task restored' });
   };
 
-  const handleDeleteTask = (id: string) => {
+  const handleDeleteTask = async (id: string) => {
     if (confirm('Delete this task permanently?')) {
-      deleteTask(id);
+      await deleteTask(id);
       toast({ title: 'Task deleted permanently' });
     }
   };
@@ -86,7 +86,7 @@ export function ArchivePage() {
                             </Badge>
                           ))}
                           <span className="text-xs text-muted-foreground">
-                            Archived {format(new Date(note.updatedAt), 'MMM d, yyyy')}
+                            Archived {format(new Date(note.updated_at), 'MMM d, yyyy')}
                           </span>
                         </div>
                       </div>
@@ -145,7 +145,7 @@ export function ArchivePage() {
                             </Badge>
                           ))}
                           <span className="text-xs text-muted-foreground">
-                            Archived {format(new Date(task.updatedAt), 'MMM d, yyyy')}
+                            Archived {format(new Date(task.updated_at), 'MMM d, yyyy')}
                           </span>
                         </div>
                       </div>

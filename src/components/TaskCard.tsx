@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { CheckCircle2, Circle, Calendar, Flag, Pencil, Trash2, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Task } from '@/types';
+import { DbTask } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, isToday, isTomorrow, isPast, parseISO } from 'date-fns';
 
 interface TaskCardProps {
-  task: Task;
+  task: DbTask;
   onToggle: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -34,7 +34,7 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, onArchive, compact 
     return format(d, 'MMM d');
   };
 
-  const isOverdue = task.dueDate && isPast(parseISO(task.dueDate)) && !isToday(parseISO(task.dueDate)) && task.status !== 'done';
+  const isOverdue = task.due_date && isPast(parseISO(task.due_date)) && !isToday(parseISO(task.due_date)) && task.status !== 'done';
 
   return (
     <div
@@ -72,13 +72,13 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, onArchive, compact 
 
         {!compact && (
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            {task.dueDate && (
+            {task.due_date && (
               <span className={cn(
                 "text-xs flex items-center gap-1",
                 isOverdue ? "text-red-500" : "text-muted-foreground"
               )}>
                 <Calendar className="h-3 w-3" />
-                {formatDueDate(task.dueDate)}
+                {formatDueDate(task.due_date)}
               </span>
             )}
 
