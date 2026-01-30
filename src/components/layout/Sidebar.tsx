@@ -11,11 +11,12 @@ import {
   Sun,
   Moon,
   Zap,
-  Search
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { path: '/', label: 'Today', icon: Calendar },
@@ -28,17 +29,23 @@ const navItems = [
 export function Sidebar() {
   const location = useLocation();
   const { settings, updateSettings, todaysTasks, overdueTasks } = useApp();
-  const [collapsed, setCollapsed] = useState(settings.sidebarCollapsed);
+  const { signOut } = useAuth();
+  const [collapsed, setCollapsed] = useState(settings?.sidebar_collapsed ?? false);
 
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
-    updateSettings({ sidebarCollapsed: !collapsed });
+    updateSettings({ sidebar_collapsed: !collapsed });
   };
 
   const toggleTheme = () => {
+    if (!settings) return;
     const newTheme = settings.theme === 'dark' ? 'light' : 'dark';
     updateSettings({ theme: newTheme });
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   const taskCount = todaysTasks.length + overdueTasks.length;
@@ -115,12 +122,12 @@ export function Sidebar() {
           )}
           onClick={toggleTheme}
         >
-          {settings.theme === 'dark' ? (
+          {settings?.theme === 'dark' ? (
             <Sun className="h-5 w-5" />
           ) : (
             <Moon className="h-5 w-5" />
           )}
-          {!collapsed && <span>{settings.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+          {!collapsed && <span>{settings?.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </Button>
 
         <NavLink
@@ -135,6 +142,18 @@ export function Sidebar() {
           <Settings className="h-5 w-5" />
           {!collapsed && <span>Settings</span>}
         </NavLink>
+
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent",
+            collapsed && "w-10 h-10 p-0 justify-center"
+          )}
+          onClick={handleSignOut}
+        >
+          <LogOut className="h-5 w-5" />
+          {!collapsed && <span>Sign Out</span>}
+        </Button>
       </div>
     </aside>
   );

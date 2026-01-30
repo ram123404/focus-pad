@@ -1,12 +1,12 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useAppState } from '@/hooks/useAppState';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 
-type AppContextType = ReturnType<typeof useAppState>;
+type AppContextType = ReturnType<typeof useSupabaseData>;
 
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const appState = useAppState();
+  const appState = useSupabaseData();
   
   return (
     <AppContext.Provider value={appState}>

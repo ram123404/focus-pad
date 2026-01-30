@@ -12,16 +12,18 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Apply theme on mount and changes
   useEffect(() => {
+    if (!settings) return;
     const isDark = settings.theme === 'dark' || 
       (settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.classList.toggle('dark', isDark);
-  }, [settings.theme]);
+  }, [settings?.theme]);
 
   // Apply font size
   useEffect(() => {
+    if (!settings) return;
     const sizes = { small: '14px', medium: '16px', large: '18px' };
-    document.documentElement.style.fontSize = sizes[settings.fontSize];
-  }, [settings.fontSize]);
+    document.documentElement.style.fontSize = sizes[settings.font_size];
+  }, [settings?.font_size]);
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">

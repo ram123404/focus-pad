@@ -14,7 +14,209 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          daily_note_date: string | null
+          id: string
+          is_archived: boolean
+          is_daily_note: boolean
+          is_pinned: boolean
+          linked_notes: string[] | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          daily_note_date?: string | null
+          id?: string
+          is_archived?: boolean
+          is_daily_note?: boolean
+          is_pinned?: boolean
+          linked_notes?: string[] | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          daily_note_date?: string | null
+          id?: string
+          is_archived?: boolean
+          is_daily_note?: boolean
+          is_pinned?: boolean
+          linked_notes?: string[] | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          is_archived: boolean
+          is_recurring: boolean
+          linked_note_id: string | null
+          priority: string
+          recurring_pattern: string | null
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_archived?: boolean
+          is_recurring?: boolean
+          linked_note_id?: string | null
+          priority?: string
+          recurring_pattern?: string | null
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_archived?: boolean
+          is_recurring?: boolean
+          linked_note_id?: string | null
+          priority?: string
+          recurring_pattern?: string | null
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_linked_note_id_fkey"
+            columns: ["linked_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          default_view: string
+          font_family: string
+          font_size: string
+          id: string
+          pomodoro_break_minutes: number
+          pomodoro_work_minutes: number
+          sidebar_collapsed: boolean
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_view?: string
+          font_family?: string
+          font_size?: string
+          id?: string
+          pomodoro_break_minutes?: number
+          pomodoro_work_minutes?: number
+          sidebar_collapsed?: boolean
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_view?: string
+          font_family?: string
+          font_size?: string
+          id?: string
+          pomodoro_break_minutes?: number
+          pomodoro_work_minutes?: number
+          sidebar_collapsed?: boolean
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

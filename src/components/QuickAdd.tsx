@@ -40,33 +40,39 @@ export function QuickAdd({ className, autoFocus, defaultType, onAdd }: QuickAddP
     }
   }, [input, defaultType]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !preview) return;
 
     if (preview.type === 'note') {
-      createNote({
+      await createNote({
         title: preview.title,
         content: '',
         tags: preview.tags,
-        isPinned: false,
-        isArchived: false,
-        isDailyNote: false,
-        linkedNotes: [],
+        is_pinned: false,
+        is_archived: false,
+        is_daily_note: false,
+        daily_note_date: null,
+        linked_notes: [],
       });
       toast({
         title: 'Note created',
         description: preview.title,
       });
     } else {
-      createTask({
+      await createTask({
         title: preview.title,
-        dueDate: preview.dueDate || format(new Date(), 'yyyy-MM-dd'),
+        description: null,
+        due_date: preview.dueDate || format(new Date(), 'yyyy-MM-dd'),
+        due_time: null,
         priority: preview.priority || 'medium',
         status: 'todo',
         tags: preview.tags,
-        isRecurring: false,
-        isArchived: false,
+        is_recurring: false,
+        recurring_pattern: null,
+        linked_note_id: null,
+        is_archived: false,
+        completed_at: null,
       });
       toast({
         title: 'Task created',
