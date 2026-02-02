@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
@@ -21,7 +20,6 @@ interface TaskEditDialogProps {
 
 export function TaskEditDialog({ task, open, onOpenChange, onSave }: TaskEditDialogProps) {
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<Date | undefined>();
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [saving, setSaving] = useState(false);
@@ -29,7 +27,6 @@ export function TaskEditDialog({ task, open, onOpenChange, onSave }: TaskEditDia
   useEffect(() => {
     if (task) {
       setTitle(task.title);
-      setDescription(task.description || '');
       setDueDate(task.due_date ? parseISO(task.due_date) : undefined);
       setPriority(task.priority as 'low' | 'medium' | 'high');
     }
@@ -42,7 +39,6 @@ export function TaskEditDialog({ task, open, onOpenChange, onSave }: TaskEditDia
     try {
       await onSave(task.id, {
         title: title.trim(),
-        description: description.trim() || null,
         due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
         priority,
       });
@@ -67,17 +63,6 @@ export function TaskEditDialog({ task, open, onOpenChange, onSave }: TaskEditDia
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Task title"
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a description..."
-              rows={3}
             />
           </div>
           
