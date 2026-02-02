@@ -5,13 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TaskCard } from '@/components/TaskCard';
 import { QuickAdd } from '@/components/QuickAdd';
+import { TaskEditDialog } from '@/components/TaskEditDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DbTask } from '@/hooks/useSupabaseData';
 
 export function TasksPage() {
-  const { tasks, todaysTasks, overdueTasks, upcomingTasks, completedTasks, toggleTask, deleteTask, archiveTask } = useApp();
+  const { tasks, todaysTasks, overdueTasks, upcomingTasks, completedTasks, toggleTask, deleteTask, archiveTask, updateTask } = useApp();
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('today');
+  const [editingTask, setEditingTask] = useState<DbTask | null>(null);
 
   const filterTasks = (taskList: typeof tasks) => {
     return taskList.filter(task => {
@@ -28,9 +31,26 @@ export function TasksPage() {
   const filteredCompleted = useMemo(() => filterTasks(completedTasks), [completedTasks, search, filterPriority]);
   const allActiveTasks = useMemo(() => filterTasks(tasks.filter(t => !t.is_archived && t.status === 'todo')), [tasks, search, filterPriority]);
 
+  const handleEditTask = async (id: string, updates: Partial<DbTask>) => {
+    await updateTask(id, updates);
+  };
+
   const renderTaskList = (taskList: typeof tasks, emptyMessage: string) => {
     if (taskList.length === 0) return (<div className="text-center py-12 text-muted-foreground"><CheckCircle2 className="h-10 w-10 mx-auto mb-3 opacity-20" /><p>{emptyMessage}</p></div>);
-    return (<div className="space-y-1">{taskList.map(task => <TaskCard key={task.id} task={task} onToggle={() => toggleTask(task.id)} onDelete={() => deleteTask(task.id)} onArchive={() => archiveTask(task.id)} />)}</div>);
+    return (
+      <div className="space-y-1">
+        {taskList.map(task => (
+          <TaskCard 
+            key={task.id} 
+            task={task} 
+            onToggle={() => toggleTask(task.id)} 
+            onEdit={() => setEditingTask(task)}
+            onDelete={() => deleteTask(task.id)} 
+            onArchive={() => archiveTask(task.id)} 
+          />
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -53,6 +73,13 @@ export function TasksPage() {
         <TabsContent value="upcoming" className="mt-0">{renderTaskList(filteredUpcoming, "No upcoming tasks scheduled.")}</TabsContent>
         <TabsContent value="completed" className="mt-0">{renderTaskList(filteredCompleted, "No completed tasks yet.")}</TabsContent>
       </Tabs>
+
+      <TaskEditDialog
+        task={editingTask}
+        open={!!editingTask}
+        onOpenChange={(open) => !open && setEditingTask(null)}
+        onSave={handleEditTask}
+      />
     </div>
   );
 }
