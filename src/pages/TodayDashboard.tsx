@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { QuickAdd } from '@/components/QuickAdd';
 import { TaskCard } from '@/components/TaskCard';
+import { HabitTracker } from '@/components/HabitTracker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,7 @@ export function TodayDashboard() {
           </Card>
         </div>
         <div className="space-y-6">
+          <HabitTracker compact />
           {priorityTasks.length > 0 && (
             <Card className="border-primary/30 bg-primary/5">
               <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Star className="h-4 w-4 text-primary" />Top Priority</CardTitle></CardHeader>

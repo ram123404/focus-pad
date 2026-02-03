@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      habit_completions: {
+        Row: {
+          completed_date: string
+          created_at: string
+          habit_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          completed_date: string
+          created_at?: string
+          habit_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          completed_date?: string
+          created_at?: string
+          habit_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_completions_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          is_archived: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string
@@ -24,6 +89,9 @@ export type Database = {
           is_daily_note: boolean
           is_pinned: boolean
           linked_notes: string[] | null
+          reflection_accomplishment: string | null
+          reflection_gratitude: string | null
+          reflection_improvement: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -38,6 +106,9 @@ export type Database = {
           is_daily_note?: boolean
           is_pinned?: boolean
           linked_notes?: string[] | null
+          reflection_accomplishment?: string | null
+          reflection_gratitude?: string | null
+          reflection_improvement?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
@@ -52,6 +123,9 @@ export type Database = {
           is_daily_note?: boolean
           is_pinned?: boolean
           linked_notes?: string[] | null
+          reflection_accomplishment?: string | null
+          reflection_gratitude?: string | null
+          reflection_improvement?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
@@ -214,6 +288,39 @@ export type Database = {
           theme?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reflections: {
+        Row: {
+          created_at: string
+          id: string
+          lessons: string | null
+          notes: string | null
+          updated_at: string
+          user_id: string
+          week_start: string
+          wins: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lessons?: string | null
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          week_start: string
+          wins?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lessons?: string | null
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+          wins?: string | null
         }
         Relationships: []
       }

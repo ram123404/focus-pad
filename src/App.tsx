@@ -15,6 +15,7 @@ import { TasksPage } from "./pages/TasksPage";
 import { FocusPage } from "./pages/FocusPage";
 import { ArchivePage } from "./pages/ArchivePage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { WeeklyReviewPage } from "./pages/WeeklyReviewPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
                         <Route path="/notes/:id" element={<NoteEditorPage />} />
                         <Route path="/tasks" element={<TasksPage />} />
                         <Route path="/focus" element={<FocusPage />} />
+                        <Route path="/review" element={<WeeklyReviewPage />} />
                         <Route path="/archive" element={<ArchivePage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="*" element={<NotFound />} />

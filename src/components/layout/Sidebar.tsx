@@ -11,7 +11,8 @@ import {
   Sun,
   Moon,
   Zap,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ const navItems = [
   { path: '/notes', label: 'Notes', icon: FileText },
   { path: '/tasks', label: 'Tasks', icon: CheckSquare },
   { path: '/focus', label: 'Focus', icon: Zap },
+  { path: '/review', label: 'Review', icon: BarChart3 },
   { path: '/archive', label: 'Archive', icon: Archive },
 ];
 
