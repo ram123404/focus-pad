@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ArrowLeft, Pin, Trash2, Archive, Tag, Link2, Clock, Save } from 'lucide-react';
+ import { ArrowLeft, Pin, Trash2, Archive, Tag, Link2, Clock, Save, Eye, Edit3 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DailyReflection } from '@/components/DailyReflection';
+ import { NoteToolbar } from '@/components/NoteToolbar';
+ import { InteractiveMarkdown } from '@/components/InteractiveMarkdown';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { toast } from '@/hooks/use-toast';
@@ -24,6 +26,8 @@ export function NoteEditorPage() {
   const [tagInput, setTagInput] = useState('');
   const [isPreview, setIsPreview] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+ 
+   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Reflection state for daily notes
   const [reflectionGratitude, setReflectionGratitude] = useState('');
@@ -49,6 +53,67 @@ export function NoteEditorPage() {
 
   const handleTitleChange = (value: string) => { setTitle(value); setHasChanges(true); };
   const handleContentChange = (value: string) => { setContent(value); setHasChanges(true); };
+ 
+   // Toolbar insert handler
+   const handleInsert = useCallback((prefix: string, suffix?: string, multiline?: boolean) => {
+     const textarea = textareaRef.current;
+     if (!textarea) return;
+     const start = textarea.selectionStart;
+     const end = textarea.selectionEnd;
+     const selectedText = content.substring(start, end);
+     let newContent: string;
+     let newCursorPos: number;
+     if (multiline && selectedText.includes('\n')) {
+       const lines = selectedText.split('\n');
+       const prefixedLines = lines.map(line => prefix + line);
+       const replacement = prefixedLines.join('\n');
+       newContent = content.substring(0, start) + replacement + content.substring(end);
+       newCursorPos = start + replacement.length;
+     } else {
+       const insertion = prefix + selectedText + (suffix || '');
+       newContent = content.substring(0, start) + insertion + content.substring(end);
+       newCursorPos = start + prefix.length + (selectedText.length || 0);
+     }
+     handleContentChange(newContent);
+     setTimeout(() => {
+       textarea.focus();
+       textarea.setSelectionRange(newCursorPos, newCursorPos);
+     }, 0);
+   }, [content, handleContentChange]);
+ 
+   // Toolbar wrap selection handler
+   const handleWrapSelection = useCallback((prefix: string, suffix: string) => {
+     const textarea = textareaRef.current;
+     if (!textarea) return;
+     const start = textarea.selectionStart;
+     const end = textarea.selectionEnd;
+     const selectedText = content.substring(start, end);
+     const wrapped = prefix + selectedText + suffix;
+     const newContent = content.substring(0, start) + wrapped + content.substring(end);
+     handleContentChange(newContent);
+     setTimeout(() => {
+       textarea.focus();
+       textarea.setSelectionRange(start + prefix.length, start + prefix.length + selectedText.length);
+     }, 0);
+   }, [content, handleContentChange]);
+ 
+   // Keyboard shortcuts
+   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+     if (!e.metaKey && !e.ctrlKey) return;
+     const shortcuts: Record<string, () => void> = {
+       'b': () => handleWrapSelection('**', '**'),
+       'i': () => handleWrapSelection('*', '*'),
+       'e': () => handleWrapSelection('`', '`'),
+       '1': () => handleInsert('# '),
+       '2': () => handleInsert('## '),
+       '3': () => handleInsert('### '),
+     };
+     const handler = shortcuts[e.key];
+     if (handler) {
+       e.preventDefault();
+       handler();
+     }
+   }, [handleInsert, handleWrapSelection]);
 
   const handleReflectionUpdate = useCallback((field: 'reflection_gratitude' | 'reflection_accomplishment' | 'reflection_improvement', value: string) => {
     if (!note) return;
@@ -100,7 +165,9 @@ export function NoteEditorPage() {
           <Button variant="ghost" size="sm" onClick={() => navigate('/notes')}><ArrowLeft className="h-4 w-4 mr-2" />Notes</Button>
           <div className="flex items-center gap-2">
             {hasChanges && <span className="text-xs text-muted-foreground flex items-center gap-1"><Save className="h-3 w-3 animate-pulse" />Saving...</span>}
-            <Button variant="ghost" size="sm" onClick={() => setIsPreview(!isPreview)}>{isPreview ? 'Edit' : 'Preview'}</Button>
+             <Button variant="ghost" size="sm" onClick={() => setIsPreview(!isPreview)} className="gap-1.5">
+               {isPreview ? <><Edit3 className="h-3.5 w-3.5" />Edit</> : <><Eye className="h-3.5 w-3.5" />Preview</>}
+             </Button>
             <Button variant="ghost" size="icon" onClick={handlePin} className={cn(note.is_pinned && "text-primary")}><Pin className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={handleArchive}><Archive className="h-4 w-4" /></Button>
             <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
@@ -111,7 +178,26 @@ export function NoteEditorPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr,280px]">
           <div className="space-y-4">
             <Input value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Note title..." className="text-2xl font-bold border-0 px-0 focus-visible:ring-0 bg-transparent" />
-            {isPreview ? (<div className="prose prose-sm dark:prose-invert max-w-none min-h-[400px]"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content || '*No content yet*'}</ReactMarkdown></div>) : (<Textarea value={content} onChange={(e) => handleContentChange(e.target.value)} placeholder="Start writing..." className="min-h-[400px] resize-none border-0 px-0 focus-visible:ring-0 bg-transparent text-base leading-relaxed" />)}
+             {isPreview ? (
+               <InteractiveMarkdown 
+                 content={content} 
+                 onContentChange={handleContentChange}
+                 onLinkClick={handleLinkClick}
+                 className="min-h-[400px]"
+               />
+             ) : (
+               <div className="space-y-0">
+                 <NoteToolbar onInsert={handleInsert} onWrapSelection={handleWrapSelection} />
+                 <Textarea 
+                   ref={textareaRef}
+                   value={content} 
+                   onChange={(e) => handleContentChange(e.target.value)} 
+                   onKeyDown={handleKeyDown}
+                   placeholder="Start writing... Use the toolbar or shortcuts (⌘B bold, ⌘1 heading)"
+                   className="min-h-[400px] resize-none border-0 px-0 focus-visible:ring-0 bg-transparent text-base leading-relaxed font-mono"
+                 />
+               </div>
+             )}
 
             {/* Daily Reflection for daily notes */}
             {note.is_daily_note && (
