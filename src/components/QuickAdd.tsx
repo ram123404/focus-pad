@@ -63,7 +63,7 @@ export function QuickAdd({ className, autoFocus, defaultType, onAdd }: QuickAddP
       await createTask({
         title: preview.title,
         description: null,
-        due_date: preview.dueDate || format(new Date(), 'yyyy-MM-dd'),
+        due_date: preview.dueDate || null,
         due_time: null,
         priority: preview.priority || 'medium',
         status: 'todo',

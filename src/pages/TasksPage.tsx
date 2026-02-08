@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Calendar, Clock, AlertCircle, CheckCircle2, Filter } from 'lucide-react';
+import { Search, Calendar, Clock, AlertCircle, CheckCircle2, Filter, Inbox } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DbTask } from '@/hooks/useSupabaseData';
 
 export function TasksPage() {
-  const { tasks, todaysTasks, overdueTasks, upcomingTasks, completedTasks, toggleTask, deleteTask, archiveTask, updateTask } = useApp();
+  const { tasks, todaysTasks, overdueTasks, upcomingTasks, unscheduledTasks, completedTasks, toggleTask, deleteTask, archiveTask, updateTask } = useApp();
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('today');
@@ -28,6 +28,7 @@ export function TasksPage() {
   const filteredToday = useMemo(() => filterTasks(todaysTasks), [todaysTasks, search, filterPriority]);
   const filteredOverdue = useMemo(() => filterTasks(overdueTasks), [overdueTasks, search, filterPriority]);
   const filteredUpcoming = useMemo(() => filterTasks(upcomingTasks), [upcomingTasks, search, filterPriority]);
+  const filteredUnscheduled = useMemo(() => filterTasks(unscheduledTasks), [unscheduledTasks, search, filterPriority]);
   const filteredCompleted = useMemo(() => filterTasks(completedTasks), [completedTasks, search, filterPriority]);
   const allActiveTasks = useMemo(() => filterTasks(tasks.filter(t => !t.is_archived && t.status === 'todo')), [tasks, search, filterPriority]);
 
@@ -66,11 +67,13 @@ export function TasksPage() {
           <TabsTrigger value="today" className="gap-2"><Clock className="h-4 w-4" />Today{filteredToday.length > 0 && <span className="ml-1 text-xs bg-primary/20 px-1.5 py-0.5 rounded-full">{filteredToday.length}</span>}</TabsTrigger>
           <TabsTrigger value="overdue" className="gap-2"><AlertCircle className="h-4 w-4" />Overdue{filteredOverdue.length > 0 && <span className="ml-1 text-xs bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">{filteredOverdue.length}</span>}</TabsTrigger>
           <TabsTrigger value="upcoming" className="gap-2"><Calendar className="h-4 w-4" />Upcoming</TabsTrigger>
+          <TabsTrigger value="unscheduled" className="gap-2"><Inbox className="h-4 w-4" />Unscheduled{filteredUnscheduled.length > 0 && <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{filteredUnscheduled.length}</span>}</TabsTrigger>
           <TabsTrigger value="completed" className="gap-2"><CheckCircle2 className="h-4 w-4" />Done</TabsTrigger>
         </TabsList>
         <TabsContent value="today" className="mt-0">{renderTaskList(filteredToday, "No tasks for today. Use quick add above!")}</TabsContent>
         <TabsContent value="overdue" className="mt-0">{renderTaskList(filteredOverdue, "No overdue tasks. Great job!")}</TabsContent>
         <TabsContent value="upcoming" className="mt-0">{renderTaskList(filteredUpcoming, "No upcoming tasks scheduled.")}</TabsContent>
+        <TabsContent value="unscheduled" className="mt-0">{renderTaskList(filteredUnscheduled, "No unscheduled tasks. All tasks have a due date!")}</TabsContent>
         <TabsContent value="completed" className="mt-0">{renderTaskList(filteredCompleted, "No completed tasks yet.")}</TabsContent>
       </Tabs>
 

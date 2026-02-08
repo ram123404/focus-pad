@@ -318,6 +318,11 @@ export function useSupabaseData() {
     return t.due_date > today;
   });
 
+  const unscheduledTasks = tasks.filter(t => {
+    if (t.is_archived || t.status === 'done') return false;
+    return !t.due_date;
+  });
+
   const completedTasks = tasks.filter(t => t.status === 'done' && !t.is_archived);
 
   const priorityTasks = tasks
@@ -340,6 +345,7 @@ export function useSupabaseData() {
     todaysTasks,
     overdueTasks,
     upcomingTasks,
+    unscheduledTasks,
     completedTasks,
     priorityTasks,
     activeNotes,
