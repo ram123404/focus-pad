@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 
 type AppContextType = ReturnType<typeof useSupabaseData>;
