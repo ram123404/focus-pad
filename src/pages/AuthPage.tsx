@@ -21,6 +21,7 @@ export function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
+  const [googleLoading, setGoogleLoading] = useState(false);
   
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
