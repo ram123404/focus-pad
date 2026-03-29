@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, BookOpen, CheckSquare } from 'lucide-react';
 import { z } from 'zod';
+import { lovable } from '@/integrations/lovable/index';
+import { Separator } from '@/components/ui/separator';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
