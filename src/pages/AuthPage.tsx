@@ -54,6 +54,21 @@ export function AuthPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result?.error) {
+      toast({
+        title: 'Google sign in failed',
+        description: result.error.message || 'Something went wrong',
+        variant: 'destructive',
+      });
+      setGoogleLoading(false);
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm(false)) return;
