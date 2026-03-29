@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { CheckCircle2, Circle, Calendar, Flag, Pencil, Trash2, Archive } from 'lucide-react';
+import { CheckCircle2, Circle, Calendar, Flag, Pencil, Trash2, Archive, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DbTask } from '@/hooks/useSupabaseData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, isToday, isTomorrow, isPast, parseISO } from 'date-fns';
+import { DraggableProvided } from '@hello-pangea/dnd';
 
 interface TaskCardProps {
   task: DbTask;
@@ -13,9 +14,10 @@ interface TaskCardProps {
   onDelete?: () => void;
   onArchive?: () => void;
   compact?: boolean;
+  dragProvided?: DraggableProvided;
 }
 
-export function TaskCard({ task, onToggle, onEdit, onDelete, onArchive, compact }: TaskCardProps) {
+export function TaskCard({ task, onToggle, onEdit, onDelete, onArchive, compact, dragProvided }: TaskCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const getPriorityColor = (priority: string) => {
@@ -38,6 +40,8 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, onArchive, compact 
 
   return (
     <div
+      ref={dragProvided?.innerRef}
+      {...dragProvided?.draggableProps}
       className={cn(
         "group flex items-start gap-3 p-3 rounded-lg transition-all duration-200",
         "hover:bg-accent/50 border border-transparent hover:border-border",
@@ -46,6 +50,16 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, onArchive, compact 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Drag handle */}
+      {dragProvided && (
+        <div
+          {...dragProvided.dragHandleProps}
+          className="flex-shrink-0 mt-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+      )}
+
       {/* Checkbox */}
       <button
         onClick={onToggle}

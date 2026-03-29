@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Search, Calendar, Clock, AlertCircle, CheckCircle2, Filter, Inbox } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,9 @@ import { QuickAdd } from '@/components/QuickAdd';
 import { TaskEditDialog } from '@/components/TaskEditDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DbTask } from '@/hooks/useSupabaseData';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { format, addDays } from 'date-fns';
+import { toast } from 'sonner';
 
 export function TasksPage() {
   const { tasks, todaysTasks, overdueTasks, upcomingTasks, unscheduledTasks, completedTasks, toggleTask, deleteTask, archiveTask, updateTask } = useApp();
@@ -36,46 +39,104 @@ export function TasksPage() {
     await updateTask(id, updates);
   };
 
-  const renderTaskList = (taskList: typeof tasks, emptyMessage: string) => {
-    if (taskList.length === 0) return (<div className="text-center py-12 text-muted-foreground"><CheckCircle2 className="h-10 w-10 mx-auto mb-3 opacity-20" /><p>{emptyMessage}</p></div>);
+  const handleDragEnd = useCallback(async (result: DropResult) => {
+    const { draggableId, destination, source } = result;
+    if (!destination || destination.droppableId === source.droppableId) return;
+
+    const targetCategory = destination.droppableId;
+    let updates: Partial<DbTask> = {};
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+
+    switch (targetCategory) {
+      case 'today':
+        updates = { due_date: today, status: 'todo', completed_at: null };
+        toast.success('Task moved to Today');
+        break;
+      case 'upcoming':
+        updates = { due_date: format(addDays(new Date(), 1), 'yyyy-MM-dd'), status: 'todo', completed_at: null };
+        toast.success('Task moved to Tomorrow');
+        break;
+      case 'unscheduled':
+        updates = { due_date: null, status: 'todo', completed_at: null };
+        toast.success('Task moved to Unscheduled');
+        break;
+      case 'completed':
+        updates = { status: 'done', completed_at: new Date().toISOString() };
+        toast.success('Task marked as done');
+        break;
+      case 'overdue':
+        return; // Can't drag into overdue
+      default:
+        return;
+    }
+
+    await updateTask(draggableId, updates);
+  }, [updateTask]);
+
+  const renderDraggableTaskList = (taskList: typeof tasks, droppableId: string, emptyMessage: string) => {
     return (
-      <div className="space-y-1">
-        {taskList.map(task => (
-          <TaskCard 
-            key={task.id} 
-            task={task} 
-            onToggle={() => toggleTask(task.id)} 
-            onEdit={() => setEditingTask(task)}
-            onDelete={() => deleteTask(task.id)} 
-            onArchive={() => archiveTask(task.id)} 
-          />
-        ))}
-      </div>
+      <Droppable droppableId={droppableId}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={`min-h-[80px] rounded-lg transition-colors ${snapshot.isDraggingOver ? 'bg-accent/30 border-2 border-dashed border-primary/30' : ''}`}
+          >
+            {taskList.length === 0 && !snapshot.isDraggingOver ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <CheckCircle2 className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                <p>{emptyMessage}</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {taskList.map((task, index) => (
+                  <Draggable key={task.id} draggableId={task.id} index={index}>
+                    {(dragProvided) => (
+                      <TaskCard
+                        task={task}
+                        onToggle={() => toggleTask(task.id)}
+                        onEdit={() => setEditingTask(task)}
+                        onDelete={() => deleteTask(task.id)}
+                        onArchive={() => archiveTask(task.id)}
+                        dragProvided={dragProvided}
+                      />
+                    )}
+                  </Draggable>
+                ))}
+              </div>
+            )}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
     );
   };
 
   return (
     <div className="min-h-screen p-6 lg:p-8 max-w-4xl mx-auto">
-      <header className="mb-6"><h1 className="text-2xl font-bold">Tasks</h1><p className="text-sm text-muted-foreground mt-1">{allActiveTasks.length} active task{allActiveTasks.length !== 1 ? 's' : ''}</p></header>
+      <header className="mb-6"><h1 className="text-2xl font-bold">Tasks</h1><p className="text-sm text-muted-foreground mt-1">{allActiveTasks.length} active task{allActiveTasks.length !== 1 ? 's' : ''} · Drag tasks between tabs to reschedule</p></header>
       <div className="mb-6"><QuickAdd defaultType="task" /></div>
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-[200px] max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tasks..." className="pl-9" /></div>
         <Select value={filterPriority} onValueChange={setFilterPriority}><SelectTrigger className="w-[140px]"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Priority" /></SelectTrigger><SelectContent><SelectItem value="all">All Priorities</SelectItem><SelectItem value="high">High</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="low">Low</SelectItem></SelectContent></Select>
       </div>
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="today" className="gap-2"><Clock className="h-4 w-4" />Today{filteredToday.length > 0 && <span className="ml-1 text-xs bg-primary/20 px-1.5 py-0.5 rounded-full">{filteredToday.length}</span>}</TabsTrigger>
-          <TabsTrigger value="overdue" className="gap-2"><AlertCircle className="h-4 w-4" />Overdue{filteredOverdue.length > 0 && <span className="ml-1 text-xs bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">{filteredOverdue.length}</span>}</TabsTrigger>
-          <TabsTrigger value="upcoming" className="gap-2"><Calendar className="h-4 w-4" />Upcoming</TabsTrigger>
-          <TabsTrigger value="unscheduled" className="gap-2"><Inbox className="h-4 w-4" />Unscheduled{filteredUnscheduled.length > 0 && <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{filteredUnscheduled.length}</span>}</TabsTrigger>
-          <TabsTrigger value="completed" className="gap-2"><CheckCircle2 className="h-4 w-4" />Done</TabsTrigger>
-        </TabsList>
-        <TabsContent value="today" className="mt-0">{renderTaskList(filteredToday, "No tasks for today. Use quick add above!")}</TabsContent>
-        <TabsContent value="overdue" className="mt-0">{renderTaskList(filteredOverdue, "No overdue tasks. Great job!")}</TabsContent>
-        <TabsContent value="upcoming" className="mt-0">{renderTaskList(filteredUpcoming, "No upcoming tasks scheduled.")}</TabsContent>
-        <TabsContent value="unscheduled" className="mt-0">{renderTaskList(filteredUnscheduled, "No unscheduled tasks. All tasks have a due date!")}</TabsContent>
-        <TabsContent value="completed" className="mt-0">{renderTaskList(filteredCompleted, "No completed tasks yet.")}</TabsContent>
-      </Tabs>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="today" className="gap-2"><Clock className="h-4 w-4" />Today{filteredToday.length > 0 && <span className="ml-1 text-xs bg-primary/20 px-1.5 py-0.5 rounded-full">{filteredToday.length}</span>}</TabsTrigger>
+            <TabsTrigger value="overdue" className="gap-2"><AlertCircle className="h-4 w-4" />Overdue{filteredOverdue.length > 0 && <span className="ml-1 text-xs bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full">{filteredOverdue.length}</span>}</TabsTrigger>
+            <TabsTrigger value="upcoming" className="gap-2"><Calendar className="h-4 w-4" />Upcoming</TabsTrigger>
+            <TabsTrigger value="unscheduled" className="gap-2"><Inbox className="h-4 w-4" />Unscheduled{filteredUnscheduled.length > 0 && <span className="ml-1 text-xs bg-muted px-1.5 py-0.5 rounded-full">{filteredUnscheduled.length}</span>}</TabsTrigger>
+            <TabsTrigger value="completed" className="gap-2"><CheckCircle2 className="h-4 w-4" />Done</TabsTrigger>
+          </TabsList>
+          <TabsContent value="today" className="mt-0">{renderDraggableTaskList(filteredToday, 'today', "No tasks for today. Use quick add above!")}</TabsContent>
+          <TabsContent value="overdue" className="mt-0">{renderDraggableTaskList(filteredOverdue, 'overdue', "No overdue tasks. Great job!")}</TabsContent>
+          <TabsContent value="upcoming" className="mt-0">{renderDraggableTaskList(filteredUpcoming, 'upcoming', "No upcoming tasks scheduled.")}</TabsContent>
+          <TabsContent value="unscheduled" className="mt-0">{renderDraggableTaskList(filteredUnscheduled, 'unscheduled', "No unscheduled tasks. All tasks have a due date!")}</TabsContent>
+          <TabsContent value="completed" className="mt-0">{renderDraggableTaskList(filteredCompleted, 'completed', "No completed tasks yet.")}</TabsContent>
+        </Tabs>
+      </DragDropContext>
 
       <TaskEditDialog
         task={editingTask}
